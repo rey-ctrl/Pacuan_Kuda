@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bukti Pembayaran - Demo</title>
+  <!-- Tailwind CDN (production build) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Sedikit styling tambahan */
+    .thumb { object-fit: cover; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen py-8">
+  <div class="max-w-5xl mx-auto px-4">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold">Form Upload Bukti Pembayaran</h1>
+      <p class="text-sm text-slate-600">Pengguna mengunggah gambar bukti pembayaran. Disimpan di localStorage (demo). Admin dapat melihat semua bukti.</p>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Form pengguna -->
+      <section class="bg-white p-6 rounded-2xl shadow">
+        <form id="uploadForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium">Nama Pembayar</label>
+            <input type="text" id="payerName" class="mt-1 block w-full rounded-md border-gray-200 shadow-sm" placeholder="Nama lengkap" required />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium">Jumlah (Rp)</label>
+            <input type="number" id="amount" class="mt-1 block w-full rounded-md border-gray-200 shadow-sm" placeholder="50000" required />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium">Pilih Gambar Bukti</label>
+            <input type="file" id="fileInput" accept="image/*" class="mt-1 block w-full text-sm" required />
+            <p class="text-xs text-slate-500 mt-1">Format: JPG/PNG. Maks ~5MB (browser akan menolak file besar pada demo ini).</p>
+          </div>
+
+          <div id="previewBox" class="hidden">
+            <label class="block text-sm font-medium">Preview</label>
+            <div class="mt-2 border rounded-lg p-2 flex items-center gap-3">
+              <img id="previewImg" src="#" alt="preview" class="w-28 h-20 rounded-md thumb" />
+              <div>
+                <div id="previewName" class="font-medium"></div>
+                <div id="previewAmount" class="text-sm text-slate-600"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow">Kirim Bukti</button>
+            <button type="button" id="resetForm" class="px-4 py-2 bg-slate-200 rounded-lg">Reset</button>
+          </div>
+
+          <p id="userMsg" class="text-sm text-green-600 hidden"></p>
+        </form>
+      </section>
+
+      <!-- Admin view -->
+      <section class="bg-white p-6 rounded-2xl shadow">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Panel Admin — Daftar Bukti</h2>
+          <div class="flex gap-2">
+            <button id="refreshBtn" class="px-3 py-1 border rounded">Refresh</button>
+            <button id="clearAll" class="px-3 py-1 bg-red-500 text-white rounded">Hapus Semua</button>
+          </div>
+        </div>
+
+        <div id="adminList" class="space-y-3 max-h-[60vh] overflow-auto">
+          <!-- Item akan dirender di sini -->
+        </div>
+
+        <div class="mt-4">
+          <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" id="showOnlyPending" class="w-4 h-4" />
+            <span>Tampilkan hanya belum diverifikasi</span>
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <footer class="mt-6 text-xs text-slate-500">Demo: data disimpan di browser (localStorage). Untuk produksi, sambungkan ke backend (mis. API + cloud storage).</footer>
+  </div>
+
+  <script>
+    // Util: ambil/ simpan data payments di localStorage
+    const STORAGE_KEY = 'payments_demo_v1';
+
+    function loadPayments(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      }catch(e){
+        console.error(e);
+        return [];
+      }
+    }
+    function savePayments(arr){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    }
+
+    // DOM
+    const fileInput = document.getElementById('fileInput');
+    const previewBox = document.getElementById('previewBox');
+    const previewImg = document.getElementById('previewImg');
+    const previewName = document.getElementById('previewName');
+    const previewAmount = document.getElementById('previewAmount');
+    const uploadForm = document.getElementById('uploadForm');
+    const userMsg = document.getElementById('userMsg');
+    const adminList = document.getElementById('adminList');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const clearAllBtn = document.getElementById('clearAll');
+    const resetFormBtn = document.getElementById('resetForm');
+    const showOnlyPendingCheckbox = document.getElementById('showOnlyPending');
+
+    let selectedFile = null;
+
+    fileInput.addEventListener('change', (e)=>{
+      const f = e.target.files[0];
+      if(!f) return hidePreview();
+      if(f.size > 5 * 1024 * 1024){ // limit ~5MB demo
+        alert('File terlalu besar. Maksimal 5MB untuk demo.');
+        fileInput.value = '';
+        return hidePreview();
+      }
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        selectedFile = reader.result; // base64
+        previewImg.src = selectedFile;
+        previewBox.classList.remove('hidden');
+        updatePreviewText();
+      };
+      reader.readAsDataURL(f);
+    });
+
+    function hidePreview(){
+      selectedFile = null;
+      previewBox.classList.add('hidden');
+      previewImg.src = '#';
+    }
+
+    function updatePreviewText(){
+      previewName.textContent = document.getElementById('payerName').value || '(nama belum diisi)';
+      const amt = document.getElementById('amount').value;
+      previewAmount.textContent = amt ? `Rp ${Number(amt).toLocaleString('id-ID')}` : '';
+    }
+
+    document.getElementById('payerName').addEventListener('input', updatePreviewText);
+    document.getElementById('amount').addEventListener('input', updatePreviewText);
+
+    uploadForm.addEventListener('submit', (ev)=>{
+      ev.preventDefault();
+      const name = document.getElementById('payerName').value.trim();
+      const amount = document.getElementById('amount').value.trim();
+      if(!name || !amount || !selectedFile){
+        alert('Lengkapi form dan pilih gambar bukti.');
+        return;
+      }
+
+      const payments = loadPayments();
+      const id = Date.now().toString();
+      const item = {
+        id,
+        name,
+        amount: Number(amount),
+        image: selectedFile,
+        createdAt: new Date().toISOString(),
+        verified: false
+      };
+      payments.unshift(item); // paling atas
+      savePayments(payments);
+
+      userMsg.textContent = 'Bukti berhasil diunggah! (disimpan di browser)';
+      userMsg.classList.remove('hidden');
+      setTimeout(()=> userMsg.classList.add('hidden'), 4000);
+
+      // reset form
+      uploadForm.reset();
+      hidePreview();
+      renderAdminList();
+    });
+
+    resetFormBtn.addEventListener('click', ()=>{
+      uploadForm.reset();
+      hidePreview();
+    });
+
+    refreshBtn.addEventListener('click', renderAdminList);
+
+    clearAllBtn.addEventListener('click', ()=>{
+      if(!confirm('Hapus semua data bukti? Tindakan ini tidak bisa dibatalkan.')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      renderAdminList();
+    });
+
+    showOnlyPendingCheckbox.addEventListener('change', renderAdminList);
+
+    function renderAdminList(){
+      const payments = loadPayments();
+      const onlyPending = showOnlyPendingCheckbox.checked;
+      adminList.innerHTML = '';
+      const list = payments.filter(p => onlyPending ? !p.verified : true);
+      if(list.length === 0){
+        adminList.innerHTML = '<div class="text-sm text-slate-500">Belum ada bukti pembayaran.</div>';
+        return;
+      }
+
+      list.forEach(p => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex gap-3 items-start border p-3 rounded-lg';
+
+        const img = document.createElement('img');
+        img.src = p.image;
+        img.alt = `bukti-${p.id}`;
+        img.className = 'w-32 h-20 rounded-md thumb border';
+        img.loading = 'lazy';
+
+        const info = document.createElement('div');
+        info.className = 'flex-1';
+        info.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium">${escapeHtml(p.name)}</div>
+              <div class="text-xs text-slate-600">Rp ${Number(p.amount).toLocaleString('id-ID')}</div>
+              <div class="text-xs text-slate-400">${new Date(p.createdAt).toLocaleString('id-ID')}</div>
+            </div>
+            <div class="space-x-2">
+              <button data-id="${p.id}" class="verifyBtn px-3 py-1 rounded ${p.verified ? 'bg-green-600 text-white' : 'bg-yellow-500 text-white'}">${p.verified ? 'Terverifikasi' : 'Verifikasi'}</button>
+              <button data-id="${p.id}" class="deleteBtn px-3 py-1 bg-red-500 text-white rounded">Hapus</button>
+            </div>
+          </div>
+        `;
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(info);
+        adminList.appendChild(wrapper);
+      });
+
+      // bind buttons
+      document.querySelectorAll('.verifyBtn').forEach(btn => {
+        btn.addEventListener('click', ()=>{
+          const id = btn.getAttribute('data-id');
+          toggleVerify(id);
+        });
+      });
+      document.querySelectorAll('.deleteBtn').forEach(btn => {
+        btn.addEventListener('click', ()=>{
+          const id = btn.getAttribute('data-id');
+          if(!confirm('Hapus bukti ini?')) return;
+          deletePayment(id);
+        });
+      });
+    }
+
+    function toggleVerify(id){
+      const payments = loadPayments();
+      const idx = payments.findIndex(p => p.id === id);
+      if(idx === -1) return;
+      payments[idx].verified = !payments[idx].verified;
+      savePayments(payments);
+      renderAdminList();
+    }
+
+    function deletePayment(id){
+      let payments = loadPayments();
+      payments = payments.filter(p => p.id !== id);
+      savePayments(payments);
+      renderAdminList();
+    }
+
+    // Helper: escape text
+    function escapeHtml(str){
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // render awal
+    renderAdminList();
+  </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload Bukti Pembayaran | Bimalukarstable</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 flex relative">
+
+  <!-- Sidebar -->
+  <aside class="fixed top-0 left-0 w-64 h-screen bg-white shadow-xl p-6 flex flex-col justify-between z-10">
+    <div>
+      <h2 class="text-lg font-semibold text-green-900 mb-6">Admin Panel</h2>
+      <nav class="space-y-2">
+        <a href="bankio Dashboard.html"
+           class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition">
+          Dashboard
+        </a>
+        <a href="Data Keuangan.html"
+           class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition">
+          Data Keuangan
+        </a>
+        <a href="#"
+           class="block px-4 py-2 rounded-lg text-gray-700 bg-teal-50 text-teal-600 transition">
+          Data Register
+        </a>
+      </nav>
+    </div>
+    <div class="text-sm text-gray-500 text-center">
+      © 2025 Bimalukarstable
+    </div>
+  </aside>
+
+  <!-- Konten utama -->
+  <main class="ml-64 flex-1 flex flex-col items-center justify-center min-h-screen relative z-20">
+    <div class="bg-white p-8 rounded-2xl shadow-lg w-96">
+      <h2 class="text-2xl font-semibold mb-4 text-center text-green-800">
+        Upload Bukti Pembayaran
+      </h2>
+
+      <!-- Input File -->
+      <input type="file" id="fileInput"
+             class="mb-4 block w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
+             accept="image/*" />
+
+      <!-- Input Nama -->
+      <input type="text" id="fileName" placeholder="Masukkan nama gambar"
+             class="mb-4 border border-gray-300 rounded-lg p-2 w-full text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
+
+      <!-- Tombol Upload -->
+      <button id="uploadBtn"
+              class="bg-green-600 text-white px-4 py-2 rounded-lg w-full hover:bg-green-700 active:bg-green-800 transition duration-150 ease-in-out">
+        Upload ke Google Drive
+      </button>
+
+      <!-- Preview Gambar -->
+      <div id="previewContainer" class="mt-4 text-center hidden">
+        <p class="text-sm text-gray-500 mb-2">Preview:</p>
+        <img id="previewImage" class="mx-auto rounded-lg shadow-md max-h-48 object-contain" />
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const fileNameInput = document.getElementById("fileName");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const previewContainer = document.getElementById("previewContainer");
+    const previewImage = document.getElementById("previewImage");
+
+    // 🔹 Preview gambar
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          previewImage.src = ev.target.result;
+          previewContainer.classList.remove("hidden");
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // 🔹 Upload ke Google Apps Script
+    uploadBtn.addEventListener("click", async () => {
+      const file = fileInput.files[0];
+      const nama = fileNameInput.value.trim() || (file ? file.name : "");
+      if (!file) return alert("⚠️ Pilih gambar dulu!");
+      if (!nama) return alert("⚠️ Masukkan nama gambar!");
+
+      const formData = new FormData();
+      formData.append("file", file, nama);
+
+      try {
+        const res = await fetch("https://script.google.com/macros/s/PASTE_URL_APPS_SCRIPT_KAMU/exec", {
+          method: "POST",
+          body: formData
+        });
+        const url = await res.text();
+
+        if (url.startsWith("http")) {
+          alert("✅ Upload berhasil!\nLink Gambar: " + url);
+          console.log("✅ Gambar tersimpan di Drive:", url);
+          window.open(url, "_blank");
+        } else {
+          alert("❌ Gagal upload: " + url);
+        }
+      } catch (err) {
+        alert("❌ Upload gagal: " + err.message);
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>

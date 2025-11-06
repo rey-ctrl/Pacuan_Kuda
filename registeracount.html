@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Pendaftaran</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase Realtime Database -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCET6dZt1ym9ewWyoq_qB0JHpS_SZIjATI",
+            authDomain: "bimalukar-d8948.firebaseapp.com",
+            databaseURL: "https://bimalukar-d8948-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "bimalukar-d8948",
+            storageBucket: "bimalukar-d8948.appspot.com",
+            messagingSenderId: "780187148179",
+            appId: "1:780187148179:web:341ef8e036686ac6909266"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        async function kirimData(event) {
+            event.preventDefault();
+
+            const btn = document.getElementById("btnSubmit");
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2 inline-block text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 00-8 8h4z"></path>
+                             </svg> Loading...`;
+
+            const nama = document.getElementById("nama").value.trim();
+            const wa = document.getElementById("wa").value.trim();
+            const tempat = document.getElementById("tempat").value.trim();
+            const jadwal = document.getElementById("jadwal").value.trim();
+            const tanggal_daftar = new Date().toISOString();
+
+            try {
+                const newPendaftaranRef = push(ref(database, 'pendaftaran'));
+                await set(newPendaftaranRef, {
+                    nama: nama,
+                    whatsapp: wa,
+                    tempat_tinggal: tempat,
+                    jadwal: jadwal,
+                    tanggal_daftar: tanggal_daftar,
+                });
+                alert("Pendaftaran berhasil!");
+                document.getElementById("formPendaftaran").reset();
+            } catch (e) {
+                console.error("Error: ", e);
+                alert("Gagal mendaftar! Pastikan Realtime Database rules memungkinkan penulisan data.");
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = "Daftar";
+        }
+
+        window.kirimData = kirimData;
+    </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <form id="formPendaftaran" class="bg-white p-8 rounded-lg shadow-md w-full max-w-md space-y-4" onsubmit="kirimData(event)">
+        <h2 class="text-2xl font-bold text-center text-blue-600">Form Pendaftaran</h2>
+
+        <div>
+            <label class="block font-medium">Nama Lengkap</label>
+            <input id="nama" type="text" required class="w-full p-2 border rounded-lg">
+        </div>
+
+        <div>
+            <label class="block font-medium">Nomor WhatsApp</label>
+            <input id="wa" type="text" required class="w-full p-2 border rounded-lg">
+        </div>
+
+        <div>
+            <label class="block font-medium">Tempat Tinggal</label>
+            <input id="tempat" type="text" required class="w-full p-2 border rounded-lg">
+        </div>
+
+        <div>
+            <label class="block font-medium">Jadwal</label>
+            <input id="jadwal" type="text" required class="w-full p-2 border rounded-lg">
+        </div>
+
+        <button id="btnSubmit" type="submit" 
+            class="w-full bg-blue-600 text-white p-2 rounded-lg 
+                   hover:bg-blue-700 active:bg-blue-800 
+                   active:scale-95 transition transform">
+            Daftar
+        </button>
+    </form>
+
+</body>
+</html>

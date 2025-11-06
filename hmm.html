@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Pendaftaran</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase App (wajib) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js"></script>
+
+  <style>
+    /* Animasi pop out */
+    .modal-show {
+      animation: zoomIn 0.3s ease-out;
+    }
+    @keyframes zoomIn {
+      from {transform: scale(0.7); opacity: 0;}
+      to {transform: scale(1); opacity: 1;}
+    }
+  </style>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getStorage, ref as sRef, uploadBytes, getDownloadURL } 
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCET6dZt1ym9ewWyoq_qB0JHpS_SZIjATI",
+      authDomain: "bimalukar-d8948.firebaseapp.com",
+      databaseURL: "https://bimalukar-d8948-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      projectId: "bimalukar-d8948",
+      storageBucket: "bimalukar-d8948.appspot.com",
+      messagingSenderId: "780187148179",
+      appId: "1:780187148179:web:341ef8e036686ac6909266"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const storage = getStorage(app);
+
+    async function kirimData(event) {
+      event.preventDefault();
+
+      const btn = document.getElementById("btnSubmit");
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2 inline-block text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 00-8 8h4z"></path>
+                       </svg> Mengirim...`;
+
+      const file = document.getElementById("bukti").files[0];
+      if (!file) {
+        alert("Harap upload bukti pembayaran!");
+        btn.disabled = false;
+        btn.innerHTML = "Daftar";
+        return;
+      }
+
+      try {
+        // Upload bukti pembayaran
+        const fileName = `bukti/${Date.now()}_${file.name}`;
+        const storageRef = sRef(storage, fileName);
+        await uploadBytes(storageRef, file);
+        const fileURL = await getDownloadURL(storageRef);
+
+        // Simpan ke database
+        const data = {
+          nama: document.getElementById("nama").value.trim(),
+          whatsapp: document.getElementById("wa").value.trim(),
+          tempat_tinggal: document.getElementById("tempat").value.trim(),
+          jadwal: document.getElementById("jadwal").value.trim(),
+          pelatih: document.getElementById("metode").value,
+          metode_pembayaran: document.getElementById("metodePembayaran").value,
+          bukti_url: fileURL,
+          tanggal_daftar: new Date().toISOString()
+        };
+
+        const newPendaftaranRef = push(ref(database, 'pendaftaran'));
+        await set(newPendaftaranRef, data);
+
+        alert("Pendaftaran berhasil! Bukti pembayaran sudah tersimpan.");
+        document.getElementById("formPendaftaran").reset();
+      } catch (e) {
+        console.error("Error: ", e);
+        alert("Gagal mendaftar! Coba lagi.");
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = "Daftar";
+    }
+
+    window.kirimData = kirimData;
+  </script>
+</head>
+<body class="bg-gradient-to-r from-green-300 via-white-300 to-green-400 min-h-screen flex items-center justify-center p-4 font-sans">
+
+  <div class="bg-white rounded-lg shadow-2xl max-w-6xl w-full grid md:grid-cols-2 overflow-hidden backdrop-blur-md bg-opacity-80">
+    <!-- Kiri -->
+    <div class="bg-green-600 text-white p-10 flex flex-col justify-center">
+      <img src="WhatsApp Image 2025-08-14 at 17.33.36.jpeg" alt="Logo Bimalukar" class="w-20 h-20 mb-4 rounded-full shadow-lg">
+      <h1 class="text-2xl font-serif mb-4 leading-snug">Bimalukar stable</h1>
+      <p class="text-sm uppercase tracking-wider mb-4 opacity-80">Pendaftaran</p>
+      <h1 class="text-4xl font-serif mb-4 leading-snug">
+        Silahkan jika ingin latihan <br> mari mendaftar didalam bimalukar
+      </h1>
+      <p class="mb-8 text-lg opacity-90">
+        Jika ada yang ingin bertanya hubungi nomor dibawah ini
+      </p>
+      <p class="mt-6 font-bold text-lg">📞 0815-8469-5946</p>
+
+      <!-- Tombol buka modal -->
+      <button onclick="openModal()" class="mt-6 px-6 py-3 bg-white text-green-700 font-bold rounded-xl shadow hover:bg-gray-200 transition">
+        Lihat Harga latihan kuda
+      </button>
+    </div>
+
+    <!-- Kanan -->
+    <form id="formPendaftaran" class="p-10 space-y-5" onsubmit="kirimData(event)">
+      <div>
+        <label class="block font-medium mb-1">Nama Lengkap *</label>
+        <input id="nama" type="text" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+      </div>
+      <div>
+        <label class="block font-medium mb-1">Nomor WhatsApp *</label>
+        <input id="wa" type="text" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+      </div>
+      <div>
+        <label class="block font-medium mb-1">Tempat Tinggal *</label>
+        <input id="tempat" type="text" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+      </div>
+    
+      <div>
+        <label class="block font-medium mb-1">Jadwal (senin jadwal kosong)</label>
+        <input id="jadwal" type="date" required 
+              class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">Pelatih kuda</label>
+        <select id="metode" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+          <option value="NURIMAN">NURIMAN</option>
+          <option value="YUSTIAN/PANDI">YUSTIAN/PANDI</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">Metode Pembayaran *</label>
+        <select id="metodePembayaran" required
+          class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+          <option value="" disabled selected>Pilih metode</option>
+          <option value="Dana">Dana</option>
+          <option value="Ovo">OVO</option>
+          <option value="Gopay">GoPay</option>
+        </select>
+      </div>
+
+      <button type="button" onclick="openPaymentModal()" 
+        class="mt-3 w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition">
+        Nomor Pembayaran
+      </button>
+
+      <!-- Upload Bukti Pembayaran -->
+      <div>
+        <label class="block font-medium mb-1">Bukti Pembayaran *</label>
+        <input id="bukti" type="file" accept="image/*,application/pdf" required
+              class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+        <p class="text-sm text-gray-500 mt-1">Upload screenshot transfer (JPG/PNG/PDF)</p>
+      </div>
+
+        <!-- Modal pembayaran -->
+  <div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center relative modal-show">
+      <img id="payIcon" src="" alt="icon pembayaran" class="w-20 h-20 mx-auto mb-4 rounded-full shadow" />
+      <h2 id="payName" class="text-xl font-semibold mb-2"></h2>
+      <p class="mb-3 text-gray-700">Nomor tujuan:</p>
+      <div class="flex items-center justify-center gap-2 mb-4">
+        <code id="payNumber" class="px-3 py-1 bg-gray-100 border rounded text-lg font-bold"></code>
+        <button onclick="copyNumber()" class="px-2 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">Salin</button>
+      </div>
+      <div id="qrWrap" class="hidden mb-4">
+        <p class="text-sm text-gray-600 mb-2">Atau scan QR berikut:</p>
+        <img id="payQR" src="" alt="QR" class="w-32 h-32 mx-auto border rounded"/>
+      </div>
+      <button onclick="closePaymentModal()" 
+        class="mt-4 px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Tutup</button>
+    </div>
+  </div>
+
+      <button id="btnSubmit" type="submit" class="w-full bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 active:scale-95 transition font-semibold">
+        Daftar
+      </button>
+    </form>
+  </div>
+
+
+  <!-- Modal harga -->
+  <div id="hargaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full relative modal-show">
+      <img src="/img/latihankudalistharga/WhatsApp Image 2025-08-31 at 17.23.13.jpeg" alt="Gambar Harga" class="rounded-2xl">
+      <button onclick="closeModal()" class="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full hover:bg-red-600">X</button>
+    </div>
+  </div>
+
+  <script>
+    const paymentData = {
+      "Dana": {
+        name: "Dana",
+        number: "0812-3456-7890",
+        icon: "https://upload.wikimedia.org/wikipedia/commons/7/7e/Dana_logo.png",
+        qr: ""
+      },
+      "Ovo": {
+        name: "OVO",
+        number: "0812-9876-5432",
+        icon: "https://upload.wikimedia.org/wikipedia/commons/6/6a/Logo_OVO_purple.svg",
+        qr: ""
+      },
+      "Gopay": {
+        name: "GoPay",
+        number: "0812-1122-3344",
+        icon: "https://upload.wikimedia.org/wikipedia/commons/0/0a/GoPay_logo.png",
+        qr: ""
+      }
+    };
+
+    function openPaymentModal() {
+      const metode = document.getElementById("metodePembayaran").value;
+      if (!metode) {
+        alert("Pilih metode pembayaran dulu!");
+        return;
+      }
+      const data = paymentData[metode];
+      document.getElementById("payIcon").src = data.icon;
+      document.getElementById("payName").textContent = data.name;
+      document.getElementById("payNumber").textContent = data.number;
+
+      if (data.qr) {
+        document.getElementById("payQR").src = data.qr;
+        document.getElementById("qrWrap").classList.remove("hidden");
+      } else {
+        document.getElementById("qrWrap").classList.add("hidden");
+      }
+
+      document.getElementById("paymentModal").classList.remove("hidden");
+    }
+
+    function closePaymentModal() {
+      document.getElementById("paymentModal").classList.add("hidden");
+    }
+
+    function copyNumber() {
+      const number = document.getElementById("payNumber").textContent;
+      navigator.clipboard.writeText(number).then(() => {
+        alert("Nomor berhasil disalin: " + number);
+      });
+    }
+
+    function openModal() {
+      document.getElementById("hargaModal").classList.remove("hidden");
+    }
+    function closeModal() {
+      document.getElementById("hargaModal").classList.add("hidden");
+    }
+  </script>
+
+</body>
+</html>

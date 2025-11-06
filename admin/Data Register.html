@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Register</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+  <!-- Layout Utama -->
+  <div class="flex">
+
+    <!-- Sidebar (fixed) -->
+    <aside class="fixed top-0 left-0 w-64 h-screen bg-white shadow-xl p-6 flex flex-col justify-between">
+      <div>
+        <h2 class="text-lg font-semibold text-green-900 mb-6">Admin Panel</h2>
+        <nav class="space-y-2">
+          <a href="bankio_dashboard.php" class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition">
+            Dashboard
+          </a>
+          <a href="data_keuangan.php" class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition">
+            Data Keuangan
+          </a>
+          <a href="Data Register.html" class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition">
+            Data Register
+          </a>
+          <a href="admin_galeri.php" class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition">
+            Manajemen Galeri
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Konten Utama -->
+    <main class="ml-64 flex-1 p-8">
+      <h1 class="text-3xl font-bold mb-6 text-center text-teal-600">Data Pendaftaran</h1>
+      <div id="admin-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </main>
+  </div>
+
+  <script>
+    // Konfigurasi Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCET6dZt1ym9ewWyoq_qB0JHpS_SZIjATI",
+      authDomain: "bimalukar-d8948.firebaseapp.com",
+      databaseURL: "https://bimalukar-d8948-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "bimalukar-d8948",
+      storageBucket: "bimalukar-d8948.appspot.com",
+      messagingSenderId: "780187148179",
+      appId: "1:780187148179:web:341ef8e036686ac6909266"
+    };
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const pendaftaranRef = db.ref("pendaftaran/");
+    const container = document.getElementById("admin-container");
+
+    // Ambil data dari Firebase
+    pendaftaranRef.on("value", (snapshot) => {
+      container.innerHTML = "";
+      const data = snapshot.val();
+
+      if (data) {
+        Object.keys(data).forEach(key => {
+          const item = data[key];
+          const card = document.createElement("div");
+          card.className = "bg-white p-4 rounded-lg shadow hover:shadow-lg transition duration-300";
+
+          // Isi card
+          let content = `<h2 class="text-xl font-semibold mb-2">${item.nama || "Tanpa Nama"}</h2>`;
+          Object.keys(item).forEach(field => {
+            if (field !== "nama") {
+              if (field === "bukti") {
+                content += `<p><strong>${field}:</strong> ${
+                  item[field] 
+                    ? `<a href="${item[field]}" target="_blank" class="text-blue-500 underline">Lihat</a>` 
+                    : "Belum ada"
+                }</p>`;
+              } else {
+                content += `<p><strong>${field}:</strong> ${item[field]}</p>`;
+              }
+            }
+          });
+
+          card.innerHTML = content;
+          container.appendChild(card);
+        });
+      } else {
+        container.innerHTML = "<p class='col-span-full text-gray-500'>Belum ada pendaftaran.</p>";
+      }
+    });
+  </script>
+
+</body>
+</html>
